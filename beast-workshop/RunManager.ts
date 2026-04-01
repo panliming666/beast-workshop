@@ -1,8 +1,7 @@
 import { WorkerBeast, ActiveRunEntity, RunSkill, RunEquipment, StatusEffect, DraftChoice, DraftChoiceType, GAME_CONFIG, randomElement, randomInt, generateUid } from './types';
 import { MetaGameManager } from './MetaGameManager';
 import { BattleEngine } from './BattleEngine';
-import { DraftRegistry } from './DraftRegistry';
-import { PUBLIC_SKILL_POOL } from './DraftRegistry';
+import { DraftRegistry, PUBLIC_SKILL_POOL, PUBLIC_EQUIPMENT_POOL, ELEMENT_EQUIPMENT_POOL, CURSED_RELIC_POOL } from './DraftRegistry';
 import { checkSynergyEvolution } from './SynergyRegistry';
 
 /**
@@ -15,15 +14,6 @@ export interface RunSession {
     result: 'victory' | 'defeat' | null;
     chestsEarned: number;
 }
-
-const EQUIPMENT_POOL: Omit<RunEquipment, 'id'>[] = [
-    { name: '力量之剑', type: 'attack_boost', value: 8 },
-    { name: '生命护符', type: 'hp_boost', value: 50 },
-    { name: '吸血鬼之牙', type: 'lifesteal', value: 15 },
-    { name: '诅咒之镜', type: 'merchant_cursed', value: 20 },
-    { name: '敏捷手套', type: 'attack_boost', value: 5 },
-    { name: '生命戒指', type: 'hp_boost', value: 30 },
-];
 
 /**
  * RunManager - 局内战斗管理器
@@ -104,32 +94,47 @@ export class RunManager {
     }
 
     public generateDrop(): RunEquipment {
-        const equipTemplate = randomElement(EQUIPMENT_POOL);
+        const equipTemplate = randomElement(PUBLIC_EQUIPMENT_POOL);
         return {
             id: generateUid(),
             ...equipTemplate
-        };
+        } as RunEquipment;
     }
 
     public generateMerchant(): DraftChoice[] {
+        if (!this.session) return [];
+        const playerElement = this.session.player.element;
         const choices: DraftChoice[] = [];
-        
-        for (let i = 0; i < 3; i++) {
-            const equipTemplate = randomElement(EQUIPMENT_POOL);
-            const cost = randomInt(50, 150);
-            
+
+        // 货架 1：公共装备或技能 (售价 50~100)
+        const publicEquip = randomElement(PUBLIC_EQUIPMENT_POOL);
+        choices.push({
+            type: 'merchant_item',
+            data: { equipment: { id: generateUid(), ...publicEquip } },
+            description: `📦 [${publicEquip.name}] (${publicEquip.type})`,
+            cost: randomInt(50, 100)
+        });
+
+        // 货架 2：元素专属装备 (售价 100~150)
+        const elementEquips = ELEMENT_EQUIPMENT_POOL[playerElement];
+        if (elementEquips && elementEquips.length > 0) {
+            const elemEquip = randomElement(elementEquips);
             choices.push({
                 type: 'merchant_item',
-                data: {
-                    equipment: {
-                        id: generateUid(),
-                        ...equipTemplate
-                    }
-                },
-                description: `💎 [${equipTemplate.name}] (${equipTemplate.type}, +${equipTemplate.value}) - ${cost}金币`,
-                cost
+                data: { equipment: { id: generateUid(), ...elemEquip } },
+                description: `🔥 [${elemEquip.name}] (${playerElement}专属)`,
+                cost: randomInt(100, 150)
             });
         }
+
+        // 货架 3：天价诅咒遗物 (售价 200~300)
+        const cursedRelic = randomElement(CURSED_RELIC_POOL);
+        choices.push({
+            type: 'skill',
+            data: { ...cursedRelic, id: generateUid(), currentCd: 0 },
+            description: `☠️ ${cursedRelic.name} (极度危险)`,
+            cost: randomInt(200, 300)
+        });
 
         return choices;
     }

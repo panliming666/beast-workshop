@@ -651,6 +651,62 @@ export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
     ],
 };
 
+// ========== 诅咒遗物池 (仅在商人处极小概率或天价出售) ==========
+export const CURSED_RELIC_POOL: Omit<RunSkill, 'id' | 'currentCd'>[] = [
+    {
+        name: '【诅咒】恶魔契约',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            self.passiveSkills?.forEach((s: any) => {
+                if (s.name === '【诅咒】恶魔契约') s.effectValue = self.baseAttack * 3;
+            });
+            self.currentHp = Math.max(1, self.currentHp - Math.floor(self.maxHp * 0.05));
+        }
+    },
+    {
+        name: '【诅咒】玻璃大炮',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            self.maxHp = 1;
+            self.currentHp = 1;
+            self.passiveSkills?.forEach((s: any) => {
+                if (s.name === '【诅咒】玻璃大炮') {
+                    s.multiHit = 3;
+                    s.effectValue = 100;
+                }
+            });
+        }
+    },
+    {
+        name: '【诅咒】时间狂化',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            self.skills.forEach((s: any) => {
+                if (s.currentCd > 0) {
+                    s.currentCd--;
+                    self.currentHp = Math.max(1, self.currentHp - 5);
+                }
+            });
+        }
+    },
+    {
+        name: '【诅咒】贪婪之手',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any, enemy: any, engine: any) => {
+            if (engine.tickCount % 5 === 0) {
+                const metaManager = (engine as any).metaManager;
+                if (metaManager) metaManager.metaState.gold += 10;
+                self.maxHp = Math.max(10, self.maxHp - 20);
+                self.currentHp = Math.min(self.currentHp, self.maxHp);
+            }
+        }
+    }
+] as any;
+
 /**
  * DraftRegistry - 卡池注册表
  */
