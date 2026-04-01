@@ -1,0 +1,321 @@
+import { WorkerBeast, ActiveRunEntity, RunSkill, RunEquipment, StatusEffect, DraftChoice, DraftChoiceType, GAME_CONFIG, randomElement, randomInt, generateUid } from './types';
+import { MetaGameManager } from './MetaGameManager';
+import { BattleEngine } from './BattleEngine';
+import { DraftRegistry } from './DraftRegistry';
+import { PUBLIC_SKILL_POOL } from './DraftRegistry';
+
+/**
+ * RunSession - 单次运行状态
+ */
+export interface RunSession {
+    player: ActiveRunEntity;
+    currentStage: number;
+    isFinished: boolean;
+    result: 'victory' | 'defeat' | null;
+    chestsEarned: number;
+}
+
+const EQUIPMENT_POOL: Omit<RunEquipment, 'id'>[] = [
+    { name: '力量之剑', type: 'attack_boost', value: 8 },
+    { name: '生命护符', type: 'hp_boost', value: 50 },
+    { name: '吸血鬼之牙', type: 'lifesteal', value: 15 },
+    { name: '诅咒之镜', type: 'merchant_cursed', value: 20 },
+    { name: '敏捷手套', type: 'attack_boost', value: 5 },
+    { name: '生命戒指', type: 'hp_boost', value: 30 },
+];
+
+/**
+ * RunManager - 局内战斗管理器
+ */
+export class RunManager {
+    private metaManager: MetaGameManager;
+    public session: RunSession | null = null;
+
+    constructor() {
+        this.metaManager = MetaGameManager.getInstance();
+    }
+
+    public generateStarterOptions(): WorkerBeast[] {
+        const gridBeasts = this.metaManager.getGridBeasts();
+        let options: WorkerBeast[] = [];
+        
+        if (gridBeasts.length >= 3) {
+            const shuffled = [...gridBeasts].sort(() => Math.random() - 0.5);
+            options = shuffled.slice(0, 3);
+        } else {
+            options = [...gridBeasts];
+            const needed = 3 - options.length;
+            for (let i = 0; i < needed; i++) {
+                const mercenary = this.metaManager.generateRandomBeast(1, true);
+                options.push(mercenary);
+            }
+        }
+        
+        return options;
+    }
+
+    public startRun(selectedBeast: WorkerBeast): ActiveRunEntity {
+        const hpBonus = this.metaManager.getHpBonus();
+        const dmgBonusPercent = this.metaManager.getDamageBonusPercent();
+        
+        const starMultiplier = 1 + (selectedBeast.starLevel - 1) * 0.5;
+        
+        let maxHp = Math.floor(selectedBeast.baseHp * starMultiplier);
+        let baseAttack = Math.floor(selectedBeast.baseAttack * starMultiplier);
+        
+        maxHp += hpBonus;
+        baseAttack = Math.floor(baseAttack * (1 + dmgBonusPercent / 100));
+        
+        const activeEntity: ActiveRunEntity = {
+            class: selectedBeast.class,
+            element: selectedBeast.element,
+            starLevel: selectedBeast.starLevel,
+            maxHp: maxHp,
+            currentHp: maxHp,
+            baseAttack: baseAttack,
+            skills: [],
+            equipments: [],
+            effects: []
+        };
+
+        this.session = {
+            player: activeEntity,
+            currentStage: 1,
+            isFinished: false,
+            result: null,
+            chestsEarned: 0
+        };
+        
+        return activeEntity;
+    }
+
+    private getStageType(stage: number): 'draft' | 'drop' | 'merchant' | 'combat' {
+        if (GAME_CONFIG.draftStages.includes(stage)) return 'draft';
+        if (GAME_CONFIG.dropStages.includes(stage)) return 'drop';
+        if (GAME_CONFIG.merchantStages.includes(stage)) return 'merchant';
+        return 'combat';
+    }
+
+    public generateDraft(): DraftChoice[] {
+        if (!this.session) return [];
+        const player = this.session.player;
+        return DraftRegistry.drawThreeChoices(player.class, player.element);
+    }
+
+    public generateDrop(): RunEquipment {
+        const equipTemplate = randomElement(EQUIPMENT_POOL);
+        return {
+            id: generateUid(),
+            ...equipTemplate
+        };
+    }
+
+    public generateMerchant(): DraftChoice[] {
+        const choices: DraftChoice[] = [];
+        
+        for (let i = 0; i < 3; i++) {
+            const equipTemplate = randomElement(EQUIPMENT_POOL);
+            const cost = randomInt(50, 150);
+            
+            choices.push({
+                type: 'merchant_item',
+                data: {
+                    equipment: {
+                        id: generateUid(),
+                        ...equipTemplate
+                    }
+                },
+                description: `💎 [${equipTemplate.name}] (${equipTemplate.type}, +${equipTemplate.value}) - ${cost}金币`,
+                cost
+            });
+        }
+
+        return choices;
+    }
+
+    public applyDraftChoice(choice: DraftChoice): void {
+        if (!this.session) return;
+        
+        switch (choice.type) {
+            case 'star_up':
+                const oldMaxHp = this.session.player.maxHp;
+                const oldAttack = this.session.player.baseAttack;
+                
+                this.session.player.maxHp = Math.floor(oldMaxHp * 1.1);
+                this.session.player.currentHp = Math.floor(this.session.player.currentHp * 1.1);
+                this.session.player.baseAttack = Math.floor(oldAttack * 1.1);
+                this.session.player.starLevel++;
+                
+                console.log(`⭐ 升星成功! HP: ${oldMaxHp} → ${this.session.player.maxHp}`);
+                break;
+                
+            case 'skill':
+                const skill: RunSkill = {
+                    ...choice.data,
+                    currentCd: 0
+                };
+                this.session.player.skills.push(skill);
+                console.log(`✨ 获得技能: [${skill.name}]`);
+                break;
+                
+            case 'merchant_item':
+                const cost = choice.cost || 0;
+                if (this.metaManager.metaState.gold >= cost) {
+                    this.metaManager.metaState.gold -= cost;
+                    this.session.player.equipments.push(choice.data.equipment);
+                    console.log(`💎 购买装备: [${choice.data.equipment.name}]`);
+                }
+                break;
+        }
+    }
+
+    public rerollDraft(): DraftChoice[] | null {
+        if (!this.session) return null;
+
+        const baseCost = GAME_CONFIG.rerollCost;
+        const discount = this.metaManager.getRerollDiscount();
+        const actualCost = Math.max(0, baseCost - discount);
+        
+        if (this.metaManager.metaState.gold < actualCost) return null;
+
+        this.metaManager.metaState.gold -= actualCost;
+        return this.generateDraft();
+    }
+
+    /**
+     * Phase 8: 生成怪物 - 指数增长 + 精英词条
+     */
+    private generateEnemy(): ActiveRunEntity {
+        if (!this.session) throw new Error('No active session');
+        
+        const stage = this.session.currentStage;
+        const isBoss = (stage === 10);
+        
+        const growthFactor = Math.pow(1.3, stage - 1);
+        const baseHp = Math.floor(80 * growthFactor);
+        const baseAtk = Math.floor(8 * growthFactor);
+        
+        const classes: ('Striker' | 'Caster' | 'Conjurer')[] = ['Striker', 'Caster', 'Conjurer'];
+        const elements: ('Fire' | 'Ice' | 'Thunder' | 'Venom')[] = ['Fire', 'Ice', 'Thunder', 'Venom'];
+        
+        // 词条分配
+        let eliteAffixes: ('armored' | 'thorns' | 'regen' | 'berserk')[] = [];
+        let affixCount = 0;
+        
+        if (stage >= 4 && stage <= 6) affixCount = 1;
+        else if (stage >= 7 && stage <= 9) affixCount = 2;
+        else if (stage === 10) affixCount = 3;
+        
+        if (affixCount > 0) {
+            const allAffixes: ('armored' | 'thorns' | 'regen' | 'berserk')[] = ['armored', 'thorns', 'regen', 'berserk'];
+            const shuffled = [...allAffixes].sort(() => Math.random() - 0.5);
+            eliteAffixes = shuffled.slice(0, affixCount);
+        }
+        
+        let finalHp = isBoss ? baseHp * 2 : baseHp;
+        
+        const enemy: ActiveRunEntity = {
+            class: randomElement(classes),
+            element: randomElement(elements),
+            starLevel: Math.min(5, 1 + Math.floor(stage / 3)),
+            maxHp: finalHp,
+            currentHp: finalHp,
+            baseAttack: baseAtk,
+            skills: [],
+            equipments: [],
+            effects: [],
+            isBoss,
+            eliteAffixes
+        };
+
+        if (isBoss) {
+            const skillTemplate = randomElement(PUBLIC_SKILL_POOL);
+            enemy.skills.push({
+                ...skillTemplate,
+                id: generateUid(),
+                currentCd: 0
+            });
+        }
+
+        console.log(`  生成怪物: Stage ${stage} ${isBoss ? '[BOSS]' : ''} HP:${enemy.maxHp} ATK:${enemy.baseAttack} 词条:[${eliteAffixes.join(', ')}]`);
+
+        return enemy;
+    }
+
+    public runNextStage(): void {
+        if (!this.session || this.session.isFinished) return;
+
+        const stage = this.session.currentStage;
+        const stageType = this.getStageType(stage);
+        
+        console.log(`\nStage ${stage}/10 - ${stageType.toUpperCase()}`);
+        
+        if (stageType === 'draft') {
+            const choices = this.generateDraft();
+            this.applyDraftChoice(choices[0]);
+            this.session.currentStage++;
+            return;
+        }
+        
+        if (stageType === 'drop') {
+            const equipment = this.generateDrop();
+            this.session.player.equipments.push(equipment);
+            this.session.currentStage++;
+            return;
+        }
+        
+        if (stageType === 'merchant') {
+            const choices = this.generateMerchant();
+            if (choices[0].cost && this.metaManager.metaState.gold >= choices[0].cost) {
+                this.applyDraftChoice(choices[0]);
+            }
+            this.session.currentStage++;
+            return;
+        }
+
+        const enemy = this.generateEnemy();
+        
+        const battle = new BattleEngine(this.session.player, enemy);
+        battle.runBattle();
+        
+        if (battle.winner === 'player') {
+            const healAmount = Math.floor(this.session.player.maxHp * 0.2);
+            this.session.player.currentHp = Math.min(
+                this.session.player.maxHp,
+                this.session.player.currentHp + healAmount
+            );
+            
+            if (stage === 10) {
+                this.session.isFinished = true;
+                this.session.result = 'victory';
+                this.session.chestsEarned += 3;
+                console.log(`🏆 通关成功! 获得 3 宝箱!`);
+            } else {
+                this.session.currentStage++;
+            }
+        } else {
+            this.session.isFinished = true;
+            this.session.result = 'defeat';
+        }
+    }
+
+    public printSessionStatus(): void {
+        if (!this.session) return;
+        
+        console.log(`\n状态: 阶段${this.session.currentStage}/10, HP:${this.session.player.currentHp}/${this.session.player.maxHp}, 宝箱:${this.session.chestsEarned}`);
+    }
+
+    public printStarterOptions(options: WorkerBeast[]): void {
+        options.forEach((beast, idx) => {
+            console.log(`[${idx+1}] ${beast.class} ${beast.element} ⭐${beast.starLevel} HP:${beast.baseHp}`);
+        });
+    }
+
+    public printActiveEntity(entity: ActiveRunEntity): void {
+        console.log(`HP: ${entity.currentHp}/${entity.maxHp}, ATK: ${entity.baseAttack}`);
+    }
+
+    public get chestsEarned(): number {
+        return this.session?.chestsEarned || 0;
+    }
+}
