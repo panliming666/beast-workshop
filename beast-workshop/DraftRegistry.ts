@@ -198,19 +198,230 @@ export const ELEMENT_EQUIPMENT_POOL: Record<ElementTag, Omit<RunEquipment, 'id'>
     ],
 };
 
-export const ELEMENT_SKILL_POOL: Record<ElementTag, Partial<RunSkill>[]> = {
+export const ELEMENT_SKILL_POOL: Record<ElementTag, Omit<RunSkill, 'id' | 'currentCd'>[]> = {
+    // ========== 🔥 火系专属 (Fire)：极致爆破，回转与残血狂化 ==========
     'Fire': [
         { name: '炎爆术', type: 'damage', maxCd: 5, effectValue: 40, statusToApply: { type: 'burn', duration: 4, value: 8 } },
-    ],
+        // 遗物区
+        {
+            name: '【遗物】余烬沙漏', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (enemy.effects.some((e: any) => e.type === 'burn') && Math.random() < 0.2) {
+                    self.skills.forEach((s: any) => { if (s.currentCd > 0) s.currentCd--; });
+                }
+            }
+        },
+        {
+            name: '【遗物】焚天之怒', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                const burnEffect = enemy.effects.find((e: any) => e.type === 'burn');
+                if (burnEffect && burnEffect.value >= 20) {
+                    enemy.currentHp = Math.max(0, enemy.currentHp - (burnEffect.value * 3));
+                    enemy.effects = enemy.effects.filter((e: any) => e.type !== 'burn');
+                }
+            }
+        },
+        {
+            name: '【遗物】日炎斗篷', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                enemy.effects.push({ type: 'burn', duration: 2, value: 2 });
+            }
+        },
+        {
+            name: '【遗物】狂热之血', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any) => {
+                const extraDmg = (self.currentHp / self.maxHp < 0.5) ? Math.floor(self.baseAttack * 1.5) : 0;
+                if (self.passiveSkills) {
+                    self.passiveSkills.forEach((s: any) => {
+                        if (s.name === '【遗物】狂热之血') s.effectValue = extraDmg;
+                    });
+                }
+            }
+        },
+        {
+            name: '【遗物】焦土印记', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (enemy.effects.some((e: any) => e.type === 'burn')) {
+                    self.currentHp = Math.min(self.maxHp, self.currentHp + 1);
+                }
+            }
+        },
+        {
+            name: '【遗物】陨石碎片', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any, engine: any) => {
+                if (engine.tickCount % 8 === 0) {
+                    enemy.currentHp = Math.max(0, enemy.currentHp - 50);
+                    enemy.effects.push({ type: 'burn', duration: 3, value: 10 });
+                }
+            }
+        }
+    ] as any,
+
+    // ========== ❄️ 冰系专属 (Ice)：绝对防御、属性偷取与折磨 ==========
     'Ice': [
         { name: '冰封术', type: 'damage', maxCd: 4, effectValue: 25, statusToApply: { type: 'freeze', duration: 3, value: 2 } },
-    ],
+        // 遗物区
+        {
+            name: '【遗物】凛冬之握', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (enemy.effects.some((e: any) => e.type === 'freeze')) {
+                    self.currentHp = Math.min(self.maxHp, self.currentHp + Math.floor(self.maxHp * 0.02));
+                }
+            }
+        },
+        {
+            name: '【遗物】永冻冰晶', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                const maxEnemyCd = Math.max(0, ...enemy.skills.map((s: any) => s.currentCd || 0));
+                if (self.passiveSkills) {
+                    self.passiveSkills.forEach((s: any) => {
+                        if (s.name === '【遗物】永冻冰晶') s.effectValue = maxEnemyCd;
+                    });
+                }
+            }
+        },
+        {
+            name: '【遗物】霜之哀伤', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                const extraDmg = enemy.effects.some((e: any) => e.type === 'freeze') ? (self.maxHp - self.currentHp) : 0;
+                if (self.passiveSkills) {
+                    self.passiveSkills.forEach((s: any) => {
+                        if (s.name === '【遗物】霜之哀伤') s.effectValue = extraDmg;
+                    });
+                }
+            }
+        },
+        {
+            name: '【遗物】极寒冰盾', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any, engine: any) => {
+                if (engine.tickCount % 6 === 0) {
+                    enemy.effects.push({ type: 'freeze', duration: 2, value: 3 });
+                }
+            }
+        },
+        {
+            name: '【遗物】冰川裂隙', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (enemy.effects.some((e: any) => e.type === 'freeze')) {
+                    enemy.baseAttack = Math.max(5, enemy.baseAttack - 1);
+                }
+            }
+        },
+        {
+            name: '【遗物】雪盲症', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                enemy.skills.forEach((s: any) => { if (s.maxCd < 20) s.maxCd += 1; });
+            }
+        }
+    ] as any,
+
+    // ========== ⚡ 雷系专属 (Thunder)：眩晕、多重攻击与欧皇专属 ==========
     'Thunder': [
         { name: '连锁闪电', type: 'damage', maxCd: 4, effectValue: 35, statusToApply: { type: 'shock', duration: 1, value: 0 } },
-    ],
+        // 遗物区
+        {
+            name: '【遗物】静电干扰器', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (enemy.effects.some((e: any) => e.type === 'shock')) {
+                    enemy.skills.forEach((s: any) => { if (s.type !== 'passive') s.currentCd++; });
+                }
+            }
+        },
+        {
+            name: '【遗物】引雷针', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (Math.random() < 0.15) enemy.effects.push({ type: 'shock', duration: 1, value: 0 });
+            }
+        },
+        {
+            name: '【遗物】电刀', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any, engine: any) => {
+                if (engine.tickCount % 4 === 0) {
+                    enemy.currentHp = Math.max(0, enemy.currentHp - 80);
+                }
+            }
+        },
+        {
+            name: '【遗物】风暴狂热', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (enemy.effects.some((e: any) => e.type === 'shock')) {
+                    self.baseAttack += 2;
+                }
+            }
+        },
+        {
+            name: '【遗物】薛定谔的电容', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any) => {
+                const extraDmg = Math.random() > 0.5 ? self.baseAttack : -Math.floor(self.baseAttack * 0.5);
+                if (self.passiveSkills) {
+                    self.passiveSkills.forEach((s: any) => {
+                        if (s.name === '【遗物】薛定谔的电容') s.effectValue = extraDmg;
+                    });
+                }
+            }
+        },
+        {
+            name: '【遗物】雷神印记', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                enemy.effects.forEach((e: any) => { if (e.type === 'shock' && e.duration === 1) e.duration = 2; });
+            }
+        }
+    ] as any,
+
+    // ========== ☠️ 毒系专属 (Venom)：召唤物联动与滚雪球折磨 ==========
     'Venom': [
         { name: '剧毒喷雾', type: 'damage', maxCd: 4, effectValue: 22, statusToApply: { type: 'poison', duration: 3, value: 6 } },
-    ],
+        // 遗物区
+        {
+            name: '【遗物】亡语骨匣', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (self.summon) enemy.effects.push({ type: 'poison', duration: 3, value: 2 });
+            }
+        },
+        {
+            name: '【遗物】腐败催化剂', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                let extraPoisonDmg = 0;
+                enemy.effects.forEach((e: any) => { if (e.type === 'poison') extraPoisonDmg += e.value; });
+                if (extraPoisonDmg > 0) enemy.currentHp = Math.max(0, enemy.currentHp - extraPoisonDmg);
+            }
+        },
+        {
+            name: '【遗物】纳什之牙', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any) => {
+                if (self.summon && self.summon.attackCd > 1) {
+                    self.summon.attackCd = 1;
+                }
+            }
+        },
+        {
+            name: '【遗物】食尸鬼面具', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                if (self.summon && self.summon.currentHp <= 0) {
+                    enemy.effects.push({ type: 'poison', duration: 5, value: 10 });
+                }
+            }
+        },
+        {
+            name: '【遗物】剧毒之刃', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any, engine: any) => {
+                if (engine.tickCount % 2 === 0) {
+                    enemy.effects.push({ type: 'poison', duration: 2, value: 3 });
+                }
+            }
+        },
+        {
+            name: '【遗物】瘟疫源泉', type: 'passive', maxCd: 0, effectValue: 0,
+            onPassiveTick: (self: any, enemy: any) => {
+                let totalPoison = 0;
+                enemy.effects.forEach((e: any) => { if (e.type === 'poison') totalPoison += e.value; });
+                if (totalPoison >= 20) {
+                    enemy.baseAttack = Math.max(5, enemy.baseAttack - 2);
+                    self.baseAttack += 2;
+                }
+            }
+        }
+    ] as any,
 };
 
 // ========== 职业模板池 (变异系统核心) ==========
