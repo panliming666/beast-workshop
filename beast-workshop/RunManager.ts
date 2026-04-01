@@ -3,6 +3,7 @@ import { MetaGameManager } from './MetaGameManager';
 import { BattleEngine } from './BattleEngine';
 import { DraftRegistry } from './DraftRegistry';
 import { PUBLIC_SKILL_POOL } from './DraftRegistry';
+import { checkSynergyEvolution } from './SynergyRegistry';
 
 /**
  * RunSession - 单次运行状态
@@ -166,6 +167,60 @@ export class RunManager {
                     console.log(`💎 购买装备: [${choice.data.equipment.name}]`);
                 }
                 break;
+        }
+        
+        // ========== 检查羁绊进化 ==========
+        this.checkSynergyEvolution();
+    }
+    
+    /**
+     * 检查并触发羁绊进化
+     */
+    private checkSynergyEvolution(): void {
+        if (!this.session) return;
+        
+        const player = this.session.player;
+        
+        // 初始化被动技能数组
+        if (!player.passiveSkills) {
+            player.passiveSkills = [];
+        }
+        
+        // 检查是否能触发羁绊
+        const evolvedSkill = checkSynergyEvolution(
+            player.class,
+            player.element,
+            player.skills,
+            player.equipments
+        );
+        
+        if (evolvedSkill) {
+            // 找到基础技能并删除
+            const baseSkillIndex = player.skills.findIndex(s => s.id === evolvedSkill.requiredSkillId);
+            if (baseSkillIndex >= 0) {
+                const baseSkill = player.skills[baseSkillIndex];
+                player.skills.splice(baseSkillIndex, 1);
+                
+                // 添加进化后的技能
+                const newSkill = { ...evolvedSkill };
+                player.skills.push(newSkill);
+                
+                // 如果是被动技能，也添加到 passiveSkills
+                if (newSkill.type === 'passive') {
+                    player.passiveSkills.push(newSkill);
+                }
+                
+                // 打印极其显眼的羁绊共鸣日志
+                console.log('\n');
+                console.log('╔══════════════════════════════════════════════════════════╗');
+                console.log('║        🎉🎉🎉  【羁绊共鸣】进化成功!!! 🎉🎉🎉          ║');
+                console.log('╚══════════════════════════════════════════════════════════╝');
+                console.log(`   职业: ${player.class} | 元素: ${player.element}`);
+                console.log(`   基础技能: ${baseSkill.name}`);
+                console.log(`   进化技能: ${newSkill.name}`);
+                console.log(`   技能类型: ${newSkill.type}`);
+                console.log('════════════════════════════════════════════════════════════\n');
+            }
         }
     }
 

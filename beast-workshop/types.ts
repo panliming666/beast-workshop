@@ -91,6 +91,9 @@ export interface RunSkill {
     cdExtension?: number;
     timeStopDuration?: number;
     tickDamage?: number;
+    // 羁绊进化需要
+    requiredSkillId?: string;
+    requiredEquipId?: string;
 }
 
 export interface RunEquipment {
