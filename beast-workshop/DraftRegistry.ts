@@ -432,7 +432,9 @@ export interface ClassTemplate {
 }
 
 export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
+    // ========== ⚔️ 强袭者 (Striker)：物理输出、战吼与防御 ==========
     'Striker': [
+        // 原有模板
         {
             baseName: '狂暴打击',
             baseSkill: { maxCd: 3, effectValue: 30 },
@@ -443,8 +445,62 @@ export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
                 'Venom': { name: '毒刃斩', statusToApply: { type: 'poison', duration: 3, value: 5 } },
             }
         },
+        // 新增模板
+        {
+            baseName: '旋风斩',
+            baseSkill: { maxCd: 4, effectValue: 20 },
+            variants: {
+                'Fire': { name: '烈火旋风', statusToApply: { type: 'burn', duration: 3, value: 5 } },
+                'Ice': { name: '极寒风暴', statusToApply: { type: 'freeze', duration: 2, value: 2 } },
+                'Thunder': { name: '雷霆风暴', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '剑刃毒风', statusToApply: { type: 'poison', duration: 4, value: 4 } },
+            }
+        },
+        {
+            baseName: '不屈战吼',
+            baseSkill: { maxCd: 6, effectValue: 0 },
+            variants: {
+                'Fire': { name: '沸血战吼', statusToApply: { type: 'burn', duration: 2, value: 5 } },
+                'Ice': { name: '凛冬怒吼', statusToApply: { type: 'freeze', duration: 2, value: 3 } },
+                'Thunder': { name: '雷音贯耳', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '绝望嘶吼', statusToApply: { type: 'poison', duration: 5, value: 3 } },
+            }
+        },
+        {
+            baseName: '野蛮突斩',
+            baseSkill: { maxCd: 3, effectValue: 25 },
+            variants: {
+                'Fire': { name: '烈火突斩', statusToApply: { type: 'burn', duration: 2, value: 8 } },
+                'Ice': { name: '寒霜突斩', statusToApply: { type: 'freeze', duration: 2, value: 2 } },
+                'Thunder': { name: '奔雷突斩', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '剧毒突斩', statusToApply: { type: 'poison', duration: 4, value: 4 } },
+            }
+        },
+        {
+            baseName: '金刚护体',
+            baseSkill: { maxCd: 6, effectValue: 30 },
+            variants: {
+                'Fire': { name: '熔岩护体', statusToApply: { type: 'burn', duration: 3, value: 5 } },
+                'Ice': { name: '冰雪护体', statusToApply: { type: 'freeze', duration: 2, value: 2 } },
+                'Thunder': { name: '天雷护体', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '万毒护体', statusToApply: { type: 'poison', duration: 5, value: 5 } },
+            }
+        },
+        {
+            baseName: '蓄力重剑',
+            baseSkill: { maxCd: 5, effectValue: 40 },
+            variants: {
+                'Fire': { name: '烈火剑法', statusToApply: { type: 'burn', duration: 3, value: 10 } },
+                'Ice': { name: '寒霜剑法', statusToApply: { type: 'freeze', duration: 2, value: 3 } },
+                'Thunder': { name: '奔雷剑法', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '淬毒剑法', statusToApply: { type: 'poison', duration: 5, value: 8 } },
+            }
+        }
     ],
+
+    // ========== 🔮 秘术师 (Caster)：魔法输出、护盾与控制 ==========
     'Caster': [
+        // 原有模板
         {
             baseName: '秘术纸符',
             baseSkill: { maxCd: 4, effectValue: 25 },
@@ -465,8 +521,62 @@ export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
                 'Venom': { name: '剧毒飞弹', statusToApply: { type: 'poison', duration: 3, value: 3 } },
             }
         },
+        // 新增模板
+        {
+            baseName: '元素护盾',
+            baseSkill: { maxCd: 5, effectValue: 20 },
+            variants: {
+                'Fire': { name: '熔岩护甲', statusToApply: { type: 'burn', duration: 3, value: 6 } },
+                'Ice': { name: '冰霜壁垒', statusToApply: { type: 'freeze', duration: 3, value: 2 } },
+                'Thunder': { name: '静电立场', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '酸液涂层', statusToApply: { type: 'poison', duration: 5, value: 5 } },
+            }
+        },
+        {
+            baseName: '魔能爆破',
+            baseSkill: { maxCd: 6, effectValue: 45 },
+            variants: {
+                'Fire': { name: '大火球术', statusToApply: { type: 'burn', duration: 4, value: 10 } },
+                'Ice': { name: '冰川尖刺', statusToApply: { type: 'freeze', duration: 2, value: 4 } },
+                'Thunder': { name: '天雷破', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '剧毒新星', statusToApply: { type: 'poison', duration: 3, value: 12 } },
+            }
+        },
+        {
+            baseName: '狂龙诀',
+            baseSkill: { maxCd: 5, effectValue: 50 },
+            variants: {
+                'Fire': { name: '怒炎狂龙', statusToApply: { type: 'burn', duration: 4, value: 12 } },
+                'Ice': { name: '冰霜巨龙', statusToApply: { type: 'freeze', duration: 3, value: 3 } },
+                'Thunder': { name: '狂龙紫电', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '毒龙钻心', statusToApply: { type: 'poison', duration: 3, value: 15 } },
+            }
+        },
+        {
+            baseName: '惑心迷光',
+            baseSkill: { maxCd: 4, effectValue: 10 },
+            variants: {
+                'Fire': { name: '抗拒火环', statusToApply: { type: 'burn', duration: 2, value: 5 } },
+                'Ice': { name: '玄冰迷光', statusToApply: { type: 'freeze', duration: 4, value: 3 } },
+                'Thunder': { name: '雷霆震慑', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '致幻毒雾', statusToApply: { type: 'poison', duration: 6, value: 3 } },
+            }
+        },
+        {
+            baseName: '秘法护盾',
+            baseSkill: { maxCd: 5, effectValue: 25 },
+            variants: {
+                'Fire': { name: '火焰魔法盾', statusToApply: { type: 'burn', duration: 2, value: 5 } },
+                'Ice': { name: '冰霜魔法盾', statusToApply: { type: 'freeze', duration: 2, value: 2 } },
+                'Thunder': { name: '风影盾', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '剧毒魔法盾', statusToApply: { type: 'poison', duration: 4, value: 4 } },
+            }
+        }
     ],
+
+    // ========== �召唤师 (Conjurer)：召唤物、诅咒与寄生 ==========
     'Conjurer': [
+        // 原有模板
         {
             baseName: '召唤术',
             baseSkill: { maxCd: 5, effectValue: 35 },
@@ -477,6 +587,67 @@ export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
                 'Venom': { name: '召唤毒灵', statusToApply: { type: 'poison', duration: 4, value: 5 } },
             }
         },
+        // 新增模板
+        {
+            baseName: '衰弱诅咒',
+            baseSkill: { maxCd: 4, effectValue: 10 },
+            variants: {
+                'Fire': { name: '焦渴诅咒', statusToApply: { type: 'burn', duration: 5, value: 4 } },
+                'Ice': { name: '迟缓诅咒', statusToApply: { type: 'freeze', duration: 4, value: 1 } },
+                'Thunder': { name: '麻痹诅咒', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '腐朽诅咒', statusToApply: { type: 'poison', duration: 6, value: 4 } },
+            }
+        },
+        {
+            baseName: '生命链接',
+            baseSkill: { maxCd: 5, effectValue: 15 },
+            variants: {
+                'Fire': { name: '灰烬汲取', statusToApply: { type: 'burn', duration: 2, value: 5 } },
+                'Ice': { name: '寒霜反哺', statusToApply: { type: 'freeze', duration: 2, value: 2 } },
+                'Thunder': { name: '雷霆夺取', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '寄生藤蔓', statusToApply: { type: 'poison', duration: 4, value: 6 } },
+            }
+        },
+        {
+            baseName: '困魔咒',
+            baseSkill: { maxCd: 6, effectValue: 15 },
+            variants: {
+                'Fire': { name: '炼狱火阵', statusToApply: { type: 'burn', duration: 5, value: 8 } },
+                'Ice': { name: '绝对零度', statusToApply: { type: 'freeze', duration: 5, value: 4 } },
+                'Thunder': { name: '雷霆牢笼', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '万毒诛杀阵', statusToApply: { type: 'poison', duration: 5, value: 8 } },
+            }
+        },
+        {
+            baseName: '斗转星移',
+            baseSkill: { maxCd: 5, effectValue: 20 },
+            variants: {
+                'Fire': { name: '烈焰反噬', statusToApply: { type: 'burn', duration: 3, value: 10 } },
+                'Ice': { name: '寒霜折射', statusToApply: { type: 'freeze', duration: 2, value: 2 } },
+                'Thunder': { name: '雷电残影', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '怨毒链接', statusToApply: { type: 'poison', duration: 4, value: 6 } },
+            }
+        },
+        {
+            baseName: '秘术施毒',
+            baseSkill: { maxCd: 3, effectValue: 5 },
+            variants: {
+                'Fire': { name: '红毒·灼魂', statusToApply: { type: 'burn', duration: 6, value: 5 } },
+                'Ice': { name: '寒毒·刺骨', statusToApply: { type: 'freeze', duration: 3, value: 1 } },
+                'Thunder': { name: '雷毒·麻痹', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '绿毒·腐骨', statusToApply: { type: 'poison', duration: 8, value: 5 } },
+            }
+        },
+        {
+            baseName: '亡灵召唤',
+            baseSkill: { maxCd: 10, effectValue: 0 },
+            variants: {
+                'Fire': { name: '召唤火炎灵', statusToApply: { type: 'burn', duration: 1, value: 1 } },
+                'Ice': { name: '召唤冰雪人', statusToApply: { type: 'freeze', duration: 1, value: 1 } },
+                'Thunder': { name: '召唤雷灵兽', statusToApply: { type: 'shock', duration: 1, value: 0 } },
+                'Venom': { name: '召唤变异骷髅', statusToApply: { type: 'poison', duration: 1, value: 1 } },
+            }
+        }
     ],
 };
 
