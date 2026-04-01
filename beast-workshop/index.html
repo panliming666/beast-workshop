@@ -32,14 +32,16 @@
         .workstation-grid { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
         .work-slot { width: 80px; height: 80px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; }
         .work-slot.drag-over { background: rgba(0,212,170,0.3); border-color: #00d4aa; }
-        .power-display { position: absolute; bottom: -25px; font-size: 12px; color: #00d4aa; }
+        .power-display { position: absolute; bottom: -25px; font-size: 12px; color: #00d4aa; width: 100%; text-align: center; }
         .action-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: flex; justify-content: center; gap: 20px; border-top: 2px solid #e94560; z-index: 100; }
         .btn { padding: 15px 30px; font-size: 16px; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
         .btn-primary { background: linear-gradient(135deg, #e94560, #c73e54); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(233, 69, 96, 0.5); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-secondary { background: linear-gradient(135deg, #00d4aa, #00b894); color: white; }
         .btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 212, 170, 0.5); }
         #battle-scene { padding: 20px; max-width: 800px; margin: 0 auto; }
+        .stage-display { text-align: center; font-size: 24px; margin-bottom: 20px; color: #e94560; }
         .battle-arena { display: flex; justify-content: space-between; align-items: center; padding: 40px 20px; background: rgba(0,0,0,0.3); border-radius: 20px; margin-bottom: 20px; }
         .combatant { text-align: center; width: 150px; }
         .combatant-avatar { font-size: 60px; margin-bottom: 10px; }
@@ -48,11 +50,13 @@
         .hp-bar.enemy { background: linear-gradient(90deg, #e94560, #c73e54); }
         .hp-text { font-size: 14px; margin-bottom: 5px; }
         .status-icons { display: flex; justify-content: center; gap: 5px; font-size: 18px; min-height: 24px; }
+        .summon-display { font-size: 12px; color: #00d4aa; margin-top: 5px; }
         .vs-text { font-size: 48px; font-weight: bold; color: #e94560; }
         .battle-log { background: rgba(0,0,0,0.5); border-radius: 12px; padding: 15px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.8; }
         .log-entry { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .log-entry:last-child { border-bottom: none; }
         .log-damage { color: #ff6b6b; } .log-heal { color: #00d4aa; } .log-skill { color: #74b9ff; } .log-status { color: #ffeaa7; }
+        .log-summon { color: #a29bfe; } .log-passive { color: #fd79a8; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
         .modal { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 20px; padding: 30px; max-width: 600px; width: 90%; border: 2px solid #e94560; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
@@ -63,11 +67,15 @@
         .choice-icon { font-size: 36px; margin-bottom: 10px; }
         .choice-name { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
         .choice-desc { font-size: 12px; color: #aaa; }
+        .choice-cost { margin-top: 10px; color: #ffeaa7; font-weight: bold; }
         .modal-actions { display: flex; justify-content: center; gap: 15px; }
         .result-modal { text-align: center; }
         .result-icon { font-size: 80px; margin-bottom: 20px; }
         .result-title { font-size: 32px; margin-bottom: 15px; }
         .result-rewards { font-size: 18px; color: #ffeaa7; margin-bottom: 20px; }
+        .synergy-banner { background: linear-gradient(90deg, #e94560, #ff6b6b, #e94560); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 15px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+        .synergy-text { font-size: 18px; font-weight: bold; color: #fff; }
         .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #fff; padding: 15px 30px; border-radius: 30px; z-index: 2000; animation: fadeInOut 2s; }
         @keyframes fadeInOut { 0% { opacity: 0; transform: translate(-50%, -20px); } 20% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
         @media (max-width: 600px) { .beast-grid { gap: 5px; } .choice-container { grid-template-columns: 1fr; } .battle-arena { flex-direction: column; gap: 20px; } .vs-text { transform: rotate(90deg); } }
@@ -75,8 +83,8 @@
 </head>
 <body>
     <div class="resource-bar">
-        <div class="resource-item"><span class="resource-icon">💰</span><span id="gold-display">1000</span></div>
-        <div class="resource-item"><span class="resource-icon">🎁</span><span id="chests-display">3</span></div>
+        <div class="resource-item"><span class="resource-icon">💰</span><span id="gold-display">0</span></div>
+        <div class="resource-item"><span class="resource-icon">🎁</span><span id="chests-display">0</span></div>
     </div>
 
     <div id="home-scene" class="scene active">
@@ -92,12 +100,17 @@
     </div>
 
     <div id="battle-scene" class="scene">
+        <div class="stage-display" id="stage-display">Stage 1/10 - 战斗</div>
+        <div class="synergy-banner" id="synergy-banner" style="display:none;">
+            <div class="synergy-text">🎉🎉🎉 【羁绊共鸣】进化成功!!! 🎉🎉🎉</div>
+        </div>
         <div class="battle-arena">
             <div class="combatant">
                 <div class="combatant-avatar" id="player-avatar">🧙‍♂️</div>
                 <div class="hp-bar-container"><div class="hp-bar" id="player-hp-bar" style="width: 100%"></div></div>
                 <div class="hp-text" id="player-hp-text">100/100</div>
                 <div class="status-icons" id="player-status"></div>
+                <div class="summon-display" id="player-summon"></div>
             </div>
             <div class="vs-text">VS</div>
             <div class="combatant">
@@ -107,12 +120,13 @@
                 <div class="status-icons" id="enemy-status"></div>
             </div>
         </div>
-        <div class="battle-log" id="battle-log"><div class="log-entry">战斗准备就绪...</div></div>
+        <div class="battle-log" id="battle-log"><div class="log-entry">⚔️ 战斗准备就绪...</div></div>
     </div>
 
-    <div class="action-bar">
+    <div class="action-bar" id="action-bar">
         <button class="btn btn-secondary" id="btn-open-chest">🎁 开宝箱</button>
         <button class="btn btn-primary" id="btn-start-run">⚔️ 开始远征</button>
+        <button class="btn btn-secondary" id="btn-idle" style="display:none;">⏳ 挂机产出</button>
     </div>
 
     <div class="modal-overlay" id="draft-modal">
@@ -134,43 +148,6 @@
         </div>
     </div>
 
-    <script>
-    (function() {
-        const ELEMENT_ICONS = { 'Fire': '🔥', 'Ice': '❄️', 'Thunder': '⚡', 'Venom': '🧪' };
-        const CLASS_ICONS = { 'Striker': '⚔️', 'Caster': '🧙‍♂️', 'Conjurer': '🔮' };
-        const gameState = { gold: 1000, chests: 3, grid: new Array(25).fill(null), workstation: new Array(4).fill(null), inRun: false, currentStage: 0, player: null, enemy: null, draggedBeast: null, battleInterval: null };
-        const els = { gold: document.getElementById('gold-display'), chests: document.getElementById('chests-display'), homeScene: document.getElementById('home-scene'), battleScene: document.getElementById('battle-scene'), beastGrid: document.getElementById('beast-grid'), workstationGrid: document.getElementById('workstation-grid'), draftModal: document.getElementById('draft-modal'), draftChoices: document.getElementById('draft-choices'), resultModal: document.getElementById('result-modal'), resultIcon: document.getElementById('result-icon'), resultTitle: document.getElementById('result-title'), resultRewards: document.getElementById('result-rewards'), battleLog: document.getElementById('battle-log'), playerAvatar: document.getElementById('player-avatar'), enemyAvatar: document.getElementById('enemy-avatar'), playerHpBar: document.getElementById('player-hp-bar'), playerHpText: document.getElementById('player-hp-text'), enemyHpBar: document.getElementById('enemy-hp-bar'), enemyHpText: document.getElementById('enemy-hp-text'), playerStatus: document.getElementById('player-status'), enemyStatus: document.getElementById('enemy-status') };
-        function showToast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
-        function updateResources() { els.gold.textContent = gameState.gold; els.chests.textContent = gameState.chests; }
-        function createBeastCard(beast, source, index) { const card = document.createElement('div'); card.className = `beast-card element-${beast.element}`; card.draggable = true; card.dataset.id = beast.id; card.dataset.source = source; card.dataset.index = index; card.innerHTML = `<span class="beast-star">${'⭐'.repeat(beast.starLevel)}</span><span class="beast-element">${ELEMENT_ICONS[beast.element]}</span><div style="font-size:28px">${CLASS_ICONS[beast.class]}</div><div style="font-size:10px">${beast.workPower || 5}⚡</div>`; card.addEventListener('dragstart', (e) => { gameState.draggedBeast = { id: beast.id, source, index, beast }; card.classList.add('dragging'); }); card.addEventListener('dragend', () => card.classList.remove('dragging')); return card; }
-        function renderGrid() { els.beastGrid.innerHTML = ''; gameState.grid.forEach((beast, index) => { const cell = document.createElement('div'); cell.className = 'grid-cell'; cell.dataset.index = index; if (beast) cell.appendChild(createBeastCard(beast, 'grid', index)); cell.addEventListener('dragover', (e) => { e.preventDefault(); cell.classList.add('drag-over'); }); cell.addEventListener('dragleave', () => cell.classList.remove('drag-over')); cell.addEventListener('drop', handleDrop); els.beastGrid.appendChild(cell); }); }
-        function renderWorkstation() { els.workstationGrid.innerHTML = ''; let totalPower = 0; gameState.workstation.forEach((beast, index) => { const slot = document.createElement('div'); slot.className = 'work-slot'; slot.dataset.index = index; slot.dataset.type = 'workstation'; if (beast) { slot.appendChild(createBeastCard(beast, 'workstation', index)); totalPower += (beast.starLevel || 1) * (beast.workPower || 5); } slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); }); slot.addEventListener('dragleave', () => slot.classList.remove('drag-over')); slot.addEventListener('drop', handleDrop); els.workstationGrid.appendChild(slot); }); const powerDisplay = document.createElement('div'); powerDisplay.className = 'power-display'; powerDisplay.textContent = `产出: +${totalPower}/tick`; els.workstationGrid.appendChild(powerDisplay); }
-        function handleDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (!gameState.draggedBeast) return; const targetType = e.currentTarget.dataset.type || 'grid'; const targetIndex = parseInt(e.currentTarget.dataset.index); const source = gameState.draggedBeast; const sourceBeast = source.source === 'grid' ? gameState.grid[source.index] : gameState.workstation[source.index]; const targetBeast = targetType === 'grid' ? gameState.grid[targetIndex] : gameState.workstation[targetIndex]; if (targetBeast && targetBeast.id !== sourceBeast.id) { if (tryMerge(sourceBeast, targetBeast, source, targetType, targetIndex)) return; } if (source.source === 'grid') gameState.grid[source.index] = null; else gameState.workstation[source.index] = null; if (targetType === 'grid') gameState.grid[targetIndex] = sourceBeast; else gameState.workstation[targetIndex] = sourceBeast; renderGrid(); renderWorkstation(); gameState.draggedBeast = null; }
-        function tryMerge(source, target, sourceInfo, targetType, targetIndex) { if (source.class === target.class && source.element === target.element && source.starLevel === target.starLevel) { let third = null, thirdLoc = null; for (let i = 0; i < gameState.grid.length; i++) { const b = gameState.grid[i]; if (b && b.id !== source.id && b.id !== target.id && b.class === source.class && b.element === source.element && b.starLevel === source.starLevel) { third = b; thirdLoc = { type: 'grid', index: i }; break; } } if (!third) { for (let i = 0; i < gameState.workstation.length; i++) { const b = gameState.workstation[i]; if (b && b.id !== source.id && b.id !== target.id && b.class === source.class && b.element === source.element && b.starLevel === source.starLevel) { third = b; thirdLoc = { type: 'workstation', index: i }; break; } } } if (third) { const newBeast = { id: 'm' + Date.now(), class: source.class, element: source.element, starLevel: source.starLevel + 1, workPower: (source.workPower || 5) * 3 }; if (sourceInfo.source === 'grid') gameState.grid[sourceInfo.index] = null; else gameState.workstation[sourceInfo.index] = null; if (targetType === 'grid') gameState.grid[targetIndex] = newBeast; else gameState.workstation[targetIndex] = newBeast; if (thirdLoc.type === 'grid') gameState.grid[thirdLoc.index] = null; else gameState.workstation[thirdLoc.index] = null; showToast(`⭐ 合成成功! ${CLASS_ICONS[newBeast.class]} 升到 ${newBeast.starLevel}星!`); renderGrid(); renderWorkstation(); gameState.draggedBeast = null; return true; } } return false; }
-        function addBeast(beast) { const emptyIndex = gameState.grid.findIndex(b => b === null); if (emptyIndex !== -1) gameState.grid[emptyIndex] = beast; else { const wsEmpty = gameState.workstation.findIndex(b => b === null); if (wsEmpty !== -1) gameState.workstation[wsEmpty] = beast; } }
-        function openChest() { if (gameState.chests <= 0) { showToast('🎁 宝箱不足!'); return; } gameState.chests--; updateResources(); const elements = ['Fire', 'Ice', 'Thunder', 'Venom'], classes = ['Striker', 'Caster', 'Conjurer']; const newBeast = { id: 'c' + Date.now(), class: classes[Math.floor(Math.random() * 3)], element: elements[Math.floor(Math.random() * 4)], starLevel: 1, workPower: 5 }; addBeast(newBeast); renderGrid(); renderWorkstation(); showToast(`🎉 获得 ${CLASS_ICONS[newBeast.class]} ${ELEMENT_ICONS[newBeast.element]}!`); }
-        function startRun() { const allBeasts = [...gameState.grid.filter(b => b), ...gameState.workstation.filter(b => b)]; if (allBeasts.length === 0) { showToast('⚠️ 没有可用幻兽!'); return; } const selected = allBeasts.sort((a, b) => b.starLevel - a.starLevel)[0]; gameState.player = { class: selected.class, element: selected.element, starLevel: selected.starLevel, maxHp: 100 + selected.starLevel * 100, currentHp: 100 + selected.starLevel * 100, baseAttack: 15 + selected.starLevel * 10, skills: [], equipments: [], effects: [] }; gameState.inRun = true; gameState.currentStage = 1; els.homeScene.classList.remove('active'); els.battleScene.classList.add('active'); els.playerAvatar.textContent = CLASS_ICONS[gameState.player.class]; els.battleLog.innerHTML = '<div class="log-entry">⚔️ 战斗开始!</div>'; startStage(); }
-        function startStage() { const stage = gameState.currentStage; if ([1, 4, 7].includes(stage)) { showDraft(); return; } if ([2, 3, 6, 9].includes(stage)) { gameState.player.equipments.push({ name: '随机装备', type: 'attack_boost', value: 5 }); log('📦 获得掉落: 攻击力 +5', 'log-status'); gameState.currentStage++; setTimeout(startStage, 1000); return; } if ([5, 8].includes(stage)) { showMerchant(); return; } startBattle(); }
-        function generateEnemy(stage) { const growth = Math.pow(1.3, stage - 1); const isBoss = stage === 10; let hp = Math.floor(80 * growth), atk = Math.floor(8 * growth); if (isBoss) hp *= 2; const affixes = []; const affixPool = ['armored', 'thorns', 'regen', 'berserk']; let count = 0; if (stage >= 4 && stage <= 6) count = 1; else if (stage >= 7 && stage <= 9) count = 2; else if (stage === 10) count = 3; for (let i = 0; i < count; i++) affixes.push(affixPool[Math.floor(Math.random() * 4)]); const elements = ['Fire', 'Ice', 'Thunder', 'Venom'], classes = ['Striker', 'Caster', 'Conjurer']; return { class: classes[Math.floor(Math.random() * 3)], element: elements[Math.floor(Math.random() * 4)], starLevel: Math.min(5, 1 + Math.floor(stage / 3)), maxHp: hp, currentHp: hp, baseAttack: atk, skills: [], equipments: [], effects: [], isBoss, eliteAffixes: affixes }; }
-        function startBattle() { gameState.enemy = generateEnemy(gameState.currentStage); els.enemyAvatar.textContent = gameState.enemy.isBoss ? '👿' : '👹'; updateHpDisplay(); log(`👹 遭遇 ${gameState.enemy.isBoss ? 'BOSS' : '敌人'}! 词条: [${gameState.enemy.eliteAffixes?.join(', ') || '无'}]`, 'log-status'); let tick = 0; gameState.battleInterval = setInterval(() => { tick++; processBattleTick(tick); if (gameState.player.currentHp <= 0 || gameState.enemy.currentHp <= 0) { clearInterval(gameState.battleInterval); endBattle(); } }, 500); }
-        function processBattleTick(tick) { const p = gameState.player, e = gameState.enemy; if (e.eliteAffixes?.includes('regen')) { const regen = Math.floor(e.maxHp * 0.02); e.currentHp = Math.min(e.maxHp, e.currentHp + regen); log(`💚 敌人恢复 ${regen} HP`, 'log-heal'); } if (tick % 2 === 1) { let dmg = p.baseAttack; p.equipments.forEach(eq => { if (eq.type === 'attack_boost') dmg += eq.value; }); if (e.eliteAffixes?.includes('armored')) { const orig = dmg; dmg = Math.floor(dmg * 0.7); log(`🛡️ 敌人护甲减免 ${orig}→${dmg}`, 'log-status'); } e.currentHp = Math.max(0, e.currentHp - dmg); log(`⚔️ 玩家攻击造成 ${dmg} 伤害`, 'log-damage'); if (e.eliteAffixes?.includes('thorns')) { const reflect = Math.floor(dmg * 0.1); p.currentHp = Math.max(0, p.currentHp - reflect); log(`🌵 反弹 ${reflect} 伤害`, 'log-damage'); } } else { let dmg = e.baseAttack; if (e.eliteAffixes?.includes('berserk') && e.currentHp / e.maxHp < 0.3) { dmg *= 2; log(`💀 敌人狂暴! 伤害翻倍!`, 'log-status'); } p.currentHp = Math.max(0, p.currentHp - dmg); log(`👹 敌人攻击造成 ${dmg} 伤害`, 'log-damage'); } updateHpDisplay(); }
-        function updateHpDisplay() { const p = gameState.player, e = gameState.enemy; els.playerHpBar.style.width = (p.currentHp / p.maxHp * 100) + '%'; els.playerHpText.textContent = `${p.currentHp}/${p.maxHp}`; if (e) { els.enemyHpBar.style.width = (e.currentHp / e.maxHp * 100) + '%'; els.enemyHpText.textContent = `${e.currentHp}/${e.maxHp}`; } }
-        function log(msg, className = '') { const entry = document.createElement('div'); entry.className = 'log-entry ' + className; entry.textContent = msg; els.battleLog.appendChild(entry); els.battleLog.scrollTop = els.battleLog.scrollHeight; }
-        function endBattle() { if (gameState.player.currentHp > 0) { log('🎉 战斗胜利!', 'log-heal'); gameState.player.currentHp = Math.min(gameState.player.maxHp, gameState.player.currentHp + Math.floor(gameState.player.maxHp * 0.2)); if (gameState.currentStage === 10) { gameState.chests += 3; updateResources(); showResult(true, '通关成功!', '获得 3 个宝箱'); } else { gameState.currentStage++; setTimeout(startStage, 1000); } } else { log('💀 战斗失败!', 'log-damage'); showResult(false, '战斗失败', '再试一次吧'); } }
-        function showDraft() { els.draftChoices.innerHTML = ''; const skills = ['火球术', '冰枪术', '雷击', '治疗术', '重击']; for (let i = 0; i < 3; i++) { const card = document.createElement('div'); card.className = 'choice-card'; card.innerHTML = `<div class="choice-icon">✨</div><div class="choice-name">${skills[Math.floor(Math.random() * 5)]}</div><div class="choice-desc">获得新技能</div>`; card.onclick = () => { gameState.player.skills.push({ name: '新技能', damage: 20 }); log('✨ 获得新技能!', 'log-skill'); els.draftModal.classList.remove('active'); gameState.currentStage++; setTimeout(startStage, 500); }; els.draftChoices.appendChild(card); } els.draftModal.classList.add('active'); }
-        function showMerchant() { els.draftChoices.innerHTML = ''; const items = [{ name: '生命护符', icon: '❤️', desc: 'HP +50', cost: 100 }, { name: '力量之剑', icon: '⚔️', desc: 'ATK +10', cost: 100 }, { name: '吸血鬼之牙', icon: '🦷', desc: '吸血 10%', cost: 150 }]; items.forEach(item => { const card = document.createElement('div'); card.className = 'choice-card'; card.innerHTML = `<div class="choice-icon">${item.icon}</div><div class="choice-name">${item.name}</div><div class="choice-desc">${item.desc}</div><div class="choice-cost">${item.cost}💰</div>`; card.onclick = () => { if (gameState.gold >= item.cost) { gameState.gold -= item.cost; updateResources(); log(`💎 购买 ${item.name}`, 'log-skill'); els.draftModal.classList.remove('active'); gameState.currentStage++; setTimeout(startStage, 500); } else { showToast('💰 金币不足!'); } }; els.draftChoices.appendChild(card); }); els.draftModal.classList.add('active'); }
-        function showResult(win, title, rewards) { els.resultIcon.textContent = win ? '🏆' : '💀'; els.resultTitle.textContent = title; els.resultRewards.textContent = rewards; els.resultModal.classList.add('active'); }
-        function returnHome() { gameState.inRun = false; gameState.currentStage = 0; gameState.player = null; gameState.enemy = null; els.battleScene.classList.remove('active'); els.homeScene.classList.add('active'); els.resultModal.classList.remove('active'); }
-        document.getElementById('btn-open-chest').addEventListener('click', openChest);
-        document.getElementById('btn-start-run').addEventListener('click', startRun);
-        document.getElementById('btn-reroll').addEventListener('click', () => { if (gameState.gold >= 50) { gameState.gold -= 50; updateResources(); showToast('🔄 刷新成功!'); els.draftModal.classList.remove('active'); setTimeout(() => showDraft(), 100); } else { showToast('💰 金币不足!'); } });
-        document.getElementById('btn-return-home').addEventListener('click', returnHome);
-        // 初始放入2个幻兽
-        gameState.grid[12] = { id: 'b1', class: 'Caster', element: 'Fire', starLevel: 1, workPower: 5 };
-        gameState.grid[13] = { id: 'b2', class: 'Striker', element: 'Ice', starLevel: 1, workPower: 5 };
-        renderGrid(); renderWorkstation(); updateResources();
-        console.log('🎮 幻兽工坊与远征 - 游戏已启动');
-    })();
-    </script>
+    <script type="module" src="/main.ts"></script>
 </body>
 </html>

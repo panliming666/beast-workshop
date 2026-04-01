@@ -47,28 +47,23 @@ export class WorkstationManager {
 
     /**
      * 开宝箱
-     * 扣宝箱，在空位生成随机1星WorkerBeast
      */
-    public openChest(): boolean {
+    public openChest(): WorkerBeast | null {
         console.log('\n========== openChest() 执行 ==========');
         
-        // 检查宝箱数量
         if (this.metaManager.metaState.chests <= 0) {
             console.log('⚠️ 宝箱不足!');
-            return false;
+            return null;
         }
 
-        // 检查空位
         const emptySlot = this.getFirstEmptyWorkstation();
         if (emptySlot === -1) {
             console.log('⚠️ 工作站已满!');
-            return false;
+            return null;
         }
 
-        // 扣除宝箱
         this.metaManager.metaState.chests--;
 
-        // 生成1星WorkerBeast
         const classes: ClassTag[] = ['Striker', 'Caster', 'Conjurer'];
         const elements: ElementTag[] = ['Fire', 'Ice', 'Thunder', 'Venom'];
 
@@ -79,19 +74,17 @@ export class WorkstationManager {
             starLevel: 1,
             baseHp: 100,
             baseAttack: 10,
-            workPower: 1
+            workPower: 5
         };
 
-        // 放入工作站
         this.workstation[emptySlot] = beast;
 
         console.log(`✅ 宝箱已打开!`);
         console.log(`   剩余宝箱: ${this.metaManager.metaState.chests}`);
-        console.log(`   生成幻兽: [${beast.uid}] ${beast.class} | ${beast.element} | ⭐${beast.starLevel} | 工作能力: ${beast.workPower}`);
-        console.log(`   放入工作站槽位: ${emptySlot}`);
+        console.log(`   生成幻兽: [${beast.uid}] ${beast.class} | ${beast.element} | ⭐${beast.starLevel}`);
         console.log('=========================================\n');
 
-        return true;
+        return beast;
     }
 
     /**
