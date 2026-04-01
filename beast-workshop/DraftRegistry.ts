@@ -3,22 +3,179 @@
  * 公共池 + 元素池 + 职业池(变异模板)
  */
 import { RunSkill, RunEquipment, DraftChoice, DraftChoiceType, ClassTag, ElementTag, StatusEffect, randomElement, generateUid } from './types';
+import { MetaGameManager } from './MetaGameManager';
 
-// ========== 公共池 ==========
+// ========== 1. 简单数值遗物池 (RunEquipment) ==========
 export const PUBLIC_EQUIPMENT_POOL: Omit<RunEquipment, 'id'>[] = [
+    // 基础血量
+    { name: '巨人腰带', type: 'hp_boost', value: 300 },
+    { name: '巨魔之血', type: 'hp_boost', value: 600 },
+    { name: '泰坦之心', type: 'hp_boost', value: 1200 },
     { name: '生命护符', type: 'hp_boost', value: 500 },
+    { name: '龙鳞胸甲', type: 'hp_boost', value: 800 },
+    
+    // 基础攻击
+    { name: '生锈的铁剑', type: 'attack_boost', value: 10 },
+    { name: '暴风大剑', type: 'attack_boost', value: 30 },
+    { name: '斩魔长刀', type: 'attack_boost', value: 80 },
     { name: '力量之剑', type: 'attack_boost', value: 15 },
-    { name: '敏捷手套', type: 'attack_boost', value: 8 },
-    { name: '吸血鬼之牙', type: 'lifesteal', value: 15 },
+    { name: '穿刺者', type: 'attack_boost', value: 50 },
+    
+    // 吸血组件
+    { name: '多兰之刃', type: 'lifesteal', value: 5 },
+    { name: '吸血鬼面具', type: 'lifesteal', value: 15 },
+    { name: '饮血镰刀', type: 'lifesteal', value: 30 },
+    { name: '血之分身', type: 'lifesteal', value: 25 },
+    { name: '暮光之刃', type: 'lifesteal', value: 40 },
+    
+    // 诅咒/特殊
     { name: '诅咒之镜', type: 'merchant_cursed', value: 20 },
+    { name: '暗影斗篷', type: 'merchant_cursed', value: 35 },
+    { name: '恶魔印记', type: 'merchant_cursed', value: 50 },
 ];
 
-export const PUBLIC_SKILL_POOL: Omit<RunSkill, 'id' | 'currentCd'>[] = [
-    { name: '火球术', maxCd: 4, effectValue: 25, statusToApply: { type: 'burn', duration: 3, value: 5 } },
-    { name: '冰枪术', maxCd: 3, effectValue: 20, statusToApply: { type: 'freeze', duration: 2, value: 3 } },
-    { name: '雷击', maxCd: 5, effectValue: 30, statusToApply: { type: 'shock', duration: 1, value: 0 } },
-    { name: '治疗术', maxCd: 6, effectValue: 30 },
-    { name: '重击', maxCd: 3, effectValue: 35 },
+// ========== 2. 机制型与经济联动遗物池 (作为 Passive Skill 实现) ==========
+export const PUBLIC_SKILL_POOL: Partial<RunSkill>[] = [
+    // 原有基础主动技能
+    { name: '火球术', type: 'damage', maxCd: 4, effectValue: 25, statusToApply: { type: 'burn', duration: 3, value: 5 } },
+    { name: '冰枪术', type: 'damage', maxCd: 3, effectValue: 20, statusToApply: { type: 'freeze', duration: 2, value: 3 } },
+    { name: '雷击', type: 'damage', maxCd: 5, effectValue: 30, statusToApply: { type: 'shock', duration: 1, value: 0 } },
+    { name: '治疗术', type: 'heal', maxCd: 6, effectValue: 30 },
+    { name: '重击', type: 'damage', maxCd: 3, effectValue: 35 },
+
+    // --- 新增【机制型被动遗物】 ---
+
+    // 【经济联动系】
+    {
+        name: '【遗物】紫金算盘',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            const gold = MetaGameManager.getInstance().metaState.gold;
+            const extraDmg = Math.floor(gold / 100);
+            if (self.passiveSkills) {
+                self.passiveSkills.forEach((s: any) => {
+                    if (s.name === '【遗物】紫金算盘') {
+                        s.effectValue = extraDmg;
+                    }
+                });
+            }
+        }
+    },
+    {
+        name: '【遗物】赏金猎人执照',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any, enemy: any) => {
+            if (enemy.isBoss) {
+                if (!self.eliteAffixes) self.eliteAffixes = [];
+                if (!self.eliteAffixes.includes('berserk')) self.eliteAffixes.push('berserk');
+            }
+        }
+    },
+    {
+        name: '【遗物】财富金币',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: () => {
+            // 每5秒(10 tick)获得10金币 - 需要在引擎外处理，这里简单处理为每次触发
+            MetaGameManager.getInstance().metaState.gold += 1;
+        }
+    },
+
+    // 【精英词条赋予系】
+    {
+        name: '【遗物】荆棘胸甲',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            if (!self.eliteAffixes) self.eliteAffixes = [];
+            if (!self.eliteAffixes.includes('thorns')) self.eliteAffixes.push('thorns');
+        }
+    },
+    {
+        name: '【遗物】坚韧壁垒',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            if (!self.eliteAffixes) self.eliteAffixes = [];
+            if (!self.eliteAffixes.includes('armored')) self.eliteAffixes.push('armored');
+        }
+    },
+    {
+        name: '【遗物】狂战士面甲',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            if (!self.eliteAffixes) self.eliteAffixes = [];
+            if (!self.eliteAffixes.includes('berserk')) self.eliteAffixes.push('berserk');
+        }
+    },
+    {
+        name: '【遗物】复苏绿叶',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            if (!self.eliteAffixes) self.eliteAffixes = [];
+            if (!self.eliteAffixes.includes('regen')) self.eliteAffixes.push('regen');
+        }
+    },
+
+    // 【双刃剑与极限机制系】
+    {
+        name: '【遗物】破釜沉舟',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            // 首次触发时，将最大HP的一半转化为攻击力
+            if ((self as any)._破釜沉舟已触发) return;
+            (self as any)._破釜沉舟已触发 = true;
+            const transfer = Math.floor(self.maxHp * 0.5);
+            self.baseAttack += transfer;
+            self.maxHp -= transfer;
+            self.currentHp = Math.min(self.currentHp, self.maxHp);
+        }
+    },
+    {
+        name: '【遗物】玻璃渣',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            // 普攻变为2连击，但每次自己扣5血
+            if (self.passiveSkills) {
+                self.passiveSkills.forEach((s: any) => {
+                    if (s.name === '【遗物】玻璃渣') {
+                        s.multiHit = 2;
+                    }
+                });
+            }
+            self.currentHp = Math.max(1, self.currentHp - 5);
+        }
+    },
+
+    // 【特殊机制系】
+    {
+        name: '【遗物】闪电护符',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any, enemy: any) => {
+            // 攻击有20%概率造成2倍伤害
+            if (Math.random() < 0.2) {
+                if (!self.eliteAffixes) self.eliteAffixes = [];
+                if (!self.eliteAffixes.includes('berserk')) self.eliteAffixes.push('berserk');
+            }
+        }
+    },
+    {
+        name: '【遗物】反甲斗篷',
+        type: 'passive',
+        maxCd: 0, effectValue: 0,
+        onPassiveTick: (self: any) => {
+            // 受到伤害时，反弹10%给敌人
+            if (!self.eliteAffixes) self.eliteAffixes = [];
+            if (!self.eliteAffixes.includes('thorns')) self.eliteAffixes.push('thorns');
+        }
+    },
 ];
 
 // ========== 元素专属池 ==========
@@ -41,26 +198,25 @@ export const ELEMENT_EQUIPMENT_POOL: Record<ElementTag, Omit<RunEquipment, 'id'>
     ],
 };
 
-export const ELEMENT_SKILL_POOL: Record<ElementTag, Omit<RunSkill, 'id' | 'currentCd'>[]> = {
+export const ELEMENT_SKILL_POOL: Record<ElementTag, Partial<RunSkill>[]> = {
     'Fire': [
-        { name: '炎爆术', maxCd: 5, effectValue: 40, statusToApply: { type: 'burn', duration: 4, value: 8 } },
+        { name: '炎爆术', type: 'damage', maxCd: 5, effectValue: 40, statusToApply: { type: 'burn', duration: 4, value: 8 } },
     ],
     'Ice': [
-        { name: '冰封术', maxCd: 4, effectValue: 25, statusToApply: { type: 'freeze', duration: 3, value: 2 } },
+        { name: '冰封术', type: 'damage', maxCd: 4, effectValue: 25, statusToApply: { type: 'freeze', duration: 3, value: 2 } },
     ],
     'Thunder': [
-        { name: '连锁闪电', maxCd: 4, effectValue: 35, statusToApply: { type: 'shock', duration: 1, value: 0 } },
+        { name: '连锁闪电', type: 'damage', maxCd: 4, effectValue: 35, statusToApply: { type: 'shock', duration: 1, value: 0 } },
     ],
     'Venom': [
-        { name: '剧毒喷雾', maxCd: 4, effectValue: 22, statusToApply: { type: 'poison', duration: 3, value: 6 } },
+        { name: '剧毒喷雾', type: 'damage', maxCd: 4, effectValue: 22, statusToApply: { type: 'poison', duration: 3, value: 6 } },
     ],
 };
 
 // ========== 职业模板池 (变异系统核心) ==========
-// 基础模板定义 - 根据玩家元素变异为不同技能
 export interface ClassTemplate {
     baseName: string;
-    baseSkill: Omit<RunSkill, 'id' | 'currentCd' | 'name'>;
+    baseSkill: Partial<RunSkill>;
     variants: Record<ElementTag, { name: string; statusToApply: StatusEffect }>;
 }
 
@@ -101,16 +257,6 @@ export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
     ],
     'Conjurer': [
         {
-            baseName: '秘术纸符',
-            baseSkill: { maxCd: 4, effectValue: 25 },
-            variants: {
-                'Fire': { name: '炎咒', statusToApply: { type: 'burn', duration: 3, value: 6 } },
-                'Ice': { name: '极寒咒', statusToApply: { type: 'freeze', duration: 2, value: 3 } },
-                'Thunder': { name: '雷咒', statusToApply: { type: 'shock', duration: 1, value: 0 } },
-                'Venom': { name: '剧毒咒', statusToApply: { type: 'poison', duration: 4, value: 4 } },
-            }
-        },
-        {
             baseName: '召唤术',
             baseSkill: { maxCd: 5, effectValue: 35 },
             variants: {
@@ -129,27 +275,37 @@ export const CLASS_TEMPLATE_POOL: Record<ClassTag, ClassTemplate[]> = {
 export class DraftRegistry {
     /**
      * 根据玩家职业和元素生成选秀池
-     * 包含: 公共池 + 元素专属池 + 职业模板池(变异后)
      */
     public static generatePool(playerClass: ClassTag, playerElement: ElementTag): DraftChoice[] {
         const pool: DraftChoice[] = [];
 
         // 1. 公共装备池
         for (const equip of PUBLIC_EQUIPMENT_POOL) {
+            const isRelic = equip.name.includes('【遗物】');
             pool.push({
                 type: 'merchant_item',
                 data: { equipment: { id: generateUid(), ...equip } },
-                description: `📦 [${equip.name}] (${equip.type}, +${equip.value})`
+                description: isRelic ? `🔮 [${equip.name}] (被动机制遗物)` : `📦 [${equip.name}] +${equip.value}`
             });
         }
 
         // 2. 公共技能池
         for (const skill of PUBLIC_SKILL_POOL) {
-            pool.push({
-                type: 'skill',
-                data: { ...skill, id: generateUid(), currentCd: 0 },
-                description: `✨ [${skill.name}] 伤害:${skill.effectValue} CD:${skill.maxCd}`
-            });
+            const skillName = skill.name || '未知技能';
+            const isRelic = skillName.includes('【遗物】');
+            if (isRelic) {
+                pool.push({
+                    type: 'skill',
+                    data: { ...skill, id: generateUid(), currentCd: 0, name: skillName },
+                    description: `🔮 [${skillName}] (被动机制遗物)`
+                });
+            } else {
+                pool.push({
+                    type: 'skill',
+                    data: { ...skill, id: generateUid(), currentCd: 0, name: skillName },
+                    description: `✨ [${skillName}] 伤害:${skill.effectValue} CD:${skill.maxCd}`
+                });
+            }
         }
 
         // 3. 元素专属装备池
@@ -158,7 +314,7 @@ export class DraftRegistry {
             pool.push({
                 type: 'merchant_item',
                 data: { equipment: { id: generateUid(), ...equip } },
-                description: `🔥 [${equip.name}] (${playerElement}专属) ${equip.type}, +${equip.value}`
+                description: `🔥 [${equip.name}] (${playerElement}专属) +${equip.value}`
             });
         }
 
@@ -175,16 +331,15 @@ export class DraftRegistry {
         // 5. 职业模板池 - 核心变异系统
         const classTemplates = CLASS_TEMPLATE_POOL[playerClass];
         for (const template of classTemplates) {
-            // 根据玩家元素进行变异
             const variant = template.variants[playerElement];
             if (variant) {
                 const mutatedSkill: RunSkill = {
                     id: generateUid(),
-                    name: variant.name,  // 变异后的名字
-                    maxCd: template.baseSkill.maxCd,
+                    name: variant.name,
+                    maxCd: template.baseSkill.maxCd || 4,
                     currentCd: 0,
-                    effectValue: template.baseSkill.effectValue,
-                    statusToApply: variant.statusToApply  // 变异后的状态效果
+                    effectValue: template.baseSkill.effectValue || 25,
+                    statusToApply: variant.statusToApply
                 };
 
                 pool.push({
@@ -206,29 +361,34 @@ export class DraftRegistry {
     }
 
     /**
-     * 根据玩家属性抽取3个选项 - 优先保证有变异技能
+     * 根据玩家属性抽取3个选项 - 优先保证有变异技能和遗物
      */
     public static drawThreeChoices(playerClass: ClassTag, playerElement: ElementTag): DraftChoice[] {
         const pool = this.generatePool(playerClass, playerElement);
         
-        // 分离不同类型的选项
+        // 分离选项
         const mutatedSkills = pool.filter(c => c.type === 'skill' && c.description.includes('变异'));
-        const otherOptions = pool.filter(c => !(c.type === 'skill' && c.description.includes('变异')));
+        const relicOptions = pool.filter(c => c.type === 'skill' && c.description.includes('【遗物】'));
+        const otherOptions = pool.filter(c => !(c.type === 'skill' && (c.description.includes('变异') || c.description.includes('【遗物】'))));
         
-        // 确保至少1个变异技能
         const result: DraftChoice[] = [];
         
+        // 1. 确保1个变异技能
         if (mutatedSkills.length > 0) {
-            // 随机选1个变异技能
-            const mutated = mutatedSkills[Math.floor(Math.random() * mutatedSkills.length)];
-            result.push(mutated);
+            result.push(mutatedSkills[Math.floor(Math.random() * mutatedSkills.length)]);
         }
         
-        // 随机补满2个其他选项
-        const shuffled = [...otherOptions].sort(() => Math.random() - 0.5);
-        result.push(...shuffled.slice(0, 2));
+        // 2. 确保1个遗物
+        if (relicOptions.length > 0) {
+            result.push(relicOptions[Math.floor(Math.random() * relicOptions.length)]);
+        }
         
-        // 再次洗牌
+        // 3. 补满其他选项
+        const remaining = [...otherOptions, ...mutatedSkills, ...relicOptions].filter(c => !result.includes(c));
+        const shuffled = remaining.sort(() => Math.random() - 0.5);
+        result.push(...shuffled.slice(0, 3 - result.length));
+        
+        // 洗牌
         return result.sort(() => Math.random() - 0.5);
     }
 }

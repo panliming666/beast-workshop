@@ -285,10 +285,16 @@ export class RunManager {
 
         if (isBoss) {
             const skillTemplate = randomElement(PUBLIC_SKILL_POOL);
+            const skillName = skillTemplate.name || 'Boss技能';
+            const skillMaxCd = skillTemplate.maxCd || 4;
+            const skillEffectValue = skillTemplate.effectValue || 20;
             enemy.skills.push({
-                ...skillTemplate,
                 id: generateUid(),
-                currentCd: 0
+                name: skillName,
+                type: 'damage',
+                maxCd: skillMaxCd,
+                currentCd: 0,
+                effectValue: skillEffectValue
             });
         }
 
