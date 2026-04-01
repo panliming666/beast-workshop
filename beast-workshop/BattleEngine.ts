@@ -155,19 +155,11 @@ export class BattleEngine {
     /**
      * Phase 5: 处理状态异常效果
      * burn: 每tick扣除value HP
-     * poison: 累加层数，按总层数扣血（修复多重扣血bug）
+     * poison: 每tick扣除当前effect.value HP
      * freeze: 延长敌方所有技能CD
      * shock: 标记取消下一次普攻
      */
     private processStatusEffects(entity: ActiveRunEntity, entityName: string): void {
-        // 先统计 poison 总层数（只统计一次）
-        let poisonStacks = 0;
-        for (const effect of entity.effects) {
-            if (effect.type === 'poison') {
-                poisonStacks += effect.value;
-            }
-        }
-
         // 遍历处理每个状态
         for (let i = entity.effects.length - 1; i >= 0; i--) {
             const effect = entity.effects[i];
@@ -187,18 +179,16 @@ export class BattleEngine {
                     break;
 
                 case 'poison':
-                    // poison: 按总层数扣血（只扣一次）
-                    if (poisonStacks > 0) {
-                        entity.currentHp = Math.max(0, entity.currentHp - poisonStacks);
-                        this.recordEvent({
-                            tick: this.tickCount,
-                            source: entityName,
-                            target: entityName,
-                            type: 'effect',
-                            message: `🟢 ${entityName} 受到毒液伤害 ${poisonStacks} HP (${effect.duration}层, 剩余${entity.currentHp})`,
-                            damage: poisonStacks
-                        });
-                    }
+                    // poison: 直接扣除当前effect.value的血量
+                    entity.currentHp = Math.max(0, entity.currentHp - effect.value);
+                    this.recordEvent({
+                        tick: this.tickCount,
+                        source: entityName,
+                        target: entityName,
+                        type: 'effect',
+                        message: `🟢 ${entityName} 受到毒液伤害 ${effect.value} HP (剩余${entity.currentHp})`,
+                        damage: effect.value
+                    });
                     break;
 
                 case 'freeze':
